@@ -6,27 +6,21 @@ const path = require("node:path");
 const express = require("express");
 const { rateLimit } = require("express-rate-limit");
 const helmet = require("helmet");
-const { Pool } = require("pg");
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 const adminPassword = process.env.ADMIN_PASSWORD;
 const sessionSecret = process.env.SESSION_SECRET;
-const dataFile = path.join(__dirname, "data", "submissions.json");
+const databasePath = process.env.DB_PATH || path.join(__dirname, "data", "infovida.sqlite");
+const legacyDataFile = path.join(__dirname, "data", "submissions.json");
 const viewsDirectory = path.join(__dirname, "views");
 const cookieName = "infovida_admin";
 const sessionDurationSeconds = 60 * 60 * 8;
+let database;
 
 if (!adminPassword || !sessionSecret) {
   throw new Error("Configure ADMIN_PASSWORD e SESSION_SECRET no ambiente antes de iniciar.");
 }
-
-const pool = process.env.DATABASE_URL
-  ? new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ...(process.env.DATABASE_SSL === "true" ? { ssl: { rejectUnauthorized: false } } : {})
-    })
-  : null;
 
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
@@ -80,51 +74,51 @@ function requireAdmin(req, res, next) {
 }
 
 async function initializeStorage() {
-  if (pool) {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS infovida_submissions (
-        id BIGSERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        details JSONB NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
+  await fs.mkdir(path.dirname(databasePath), { recursive: true });
+  const Database = require("better-sqlite3");
+  database = new Database(databasePath);
+  database.pragma("journal_mode = WAL");
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS infovida_submissions (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      details TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `);
+
+  try {
+    const legacyEntries = JSON.parse(await fs.readFile(legacyDataFile, "utf8"));
+    const insertLegacy = database.prepare(`
+      INSERT OR IGNORE INTO infovida_submissions (id, name, details, created_at)
+      VALUES (?, ?, ?, ?)
     `);
-  } else {
-    await fs.mkdir(path.dirname(dataFile), { recursive: true });
-    try {
-      await fs.access(dataFile);
-    } catch {
-      await fs.writeFile(dataFile, "[]", "utf8");
-    }
+    const importEntries = database.transaction((entries) => {
+      for (const entry of entries) {
+        const id = typeof entry.id === "string" ? entry.id : crypto.randomUUID();
+        const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString();
+        insertLegacy.run(id, cleanText(entry.name, 100) || "Contato", JSON.stringify(entry), createdAt);
+      }
+    });
+    if (Array.isArray(legacyEntries)) importEntries(legacyEntries);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
   }
 }
 
 async function saveSubmission(submission) {
-  if (pool) {
-    const result = await pool.query(
-      "INSERT INTO infovida_submissions (name, details) VALUES ($1, $2) RETURNING id, created_at",
-      [submission.name, submission]
-    );
-    return { id: result.rows[0].id, ...submission, createdAt: result.rows[0].created_at };
-  }
-
-  const entries = JSON.parse(await fs.readFile(dataFile, "utf8"));
   const saved = { id: crypto.randomUUID(), ...submission };
-  entries.unshift(saved);
-  const temporaryFile = `${dataFile}.tmp`;
-  await fs.writeFile(temporaryFile, JSON.stringify(entries, null, 2), "utf8");
-  await fs.rename(temporaryFile, dataFile);
+  database.prepare(`
+    INSERT INTO infovida_submissions (id, name, details, created_at)
+    VALUES (?, ?, ?, ?)
+  `).run(saved.id, saved.name, JSON.stringify(saved), saved.createdAt);
   return saved;
 }
 
 async function listSubmissions() {
-  if (pool) {
-    const result = await pool.query(
-      "SELECT id, details, created_at FROM infovida_submissions ORDER BY created_at DESC"
-    );
-    return result.rows.map((row) => ({ ...row.details, id: row.id, createdAt: row.created_at }));
-  }
-  return JSON.parse(await fs.readFile(dataFile, "utf8"));
+  return database.prepare(`
+    SELECT details FROM infovida_submissions ORDER BY created_at DESC
+  `).all().map((row) => JSON.parse(row.details));
 }
 
 function cleanText(value, maxLength = 120) {
