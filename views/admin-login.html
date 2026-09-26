@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f7ef">
+    <title>Acesso restrito | Infovida</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@500;600&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/admin.css">
+    <script src="/admin.js" defer></script>
+  </head>
+  <body>
+    <main class="admin-login-page">
+      <a class="admin-brand" href="/" aria-label="Infovida, inicio"><span class="brand-seed" aria-hidden="true">i</span><span>info<strong>vida</strong></span></a>
+      <section class="login-panel" aria-labelledby="login-title">
+        <p class="eyebrow">Acesso da equipe</p>
+        <h1 id="login-title">Painel de atendimento</h1>
+        <p class="login-copy">Entre com sua senha para consultar os contatos recebidos.</p>
+        <form id="login-form">
+          <label for="admin-password">Senha de acesso</label>
+          <input id="admin-password" name="password" type="password" autocomplete="current-password" required autofocus>
+          <p id="login-error" class="admin-error" role="alert" hidden></p>
+          <button class="primary-button" type="submit"><span>Entrar no painel</span><span aria-hidden="true">&#8594;</span></button>
+        </form>
+        <a class="back-link" href="/">Voltar ao formulario</a>
+      </section>
+      <p class="login-footnote">Infovida <span>·</span> Area restrita</p>
+    </main>
+  </body>
+</html>

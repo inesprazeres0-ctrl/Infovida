@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="theme-color" content="#f5f7ef">
+		<meta name="description" content="Converse com a Infovida e receba uma simulacao de seguro de vida pensada para voce.">
+		<title>Uma vida bem cuidada | Infovida</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+		<link rel="stylesheet" href="/styles.css">
+		<script src="/app.js" defer></script>
+	</head>
+	<body>
+		<header class="site-header">
+			<a class="brand" href="/" aria-label="Infovida, inicio">
+				<span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+				<span class="brand-name">info<span>vida</span></span>
+			</a>
+			<p class="header-note"><span class="status-dot"></span> Corretora especialista em seguro de pessoas</p>
+		</header>
+
+		<main class="page-shell">
+			<section class="intro-panel" aria-labelledby="page-title">
+				<div class="intro-copy">
+					<p class="eyebrow"><span class="eyebrow-line"></span> Cuidado que acompanha voce</p>
+					<h1 id="page-title">O futuro muda.<br><em>Seu cuidado fica.</em></h1>
+					<p class="intro-description">Uma boa conversa e o primeiro passo para proteger os planos que fazem a sua vida acontecer.</p>
+					<div class="portrait-wrap">
+						<img class="family-photo" src="https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&amp;fit=crop&amp;w=1000&amp;q=85" alt="Familia reunida em um momento ao ar livre" fetchpriority="high">
+						<div class="photo-caption"><span class="caption-mark" aria-hidden="true">+</span><span>Protecao feita para a sua historia</span></div>
+					</div>
+					<div class="trust-note"><span class="trust-icon" aria-hidden="true">✓</span><p>Atendimento proximo, sem compromisso e no seu tempo.</p></div>
+				</div>
+
+				<section class="form-panel" aria-labelledby="form-title">
+					<div class="form-heading">
+						<div>
+							<p class="eyebrow form-eyebrow">Um passo de cada vez</p>
+							<h2 id="form-title">Vamos nos conhecer?</h2>
+						</div>
+						<div class="progress-count" aria-label="Seis perguntas"><span>06</span><small>perguntas</small></div>
+					</div>
+					<p class="form-lead">Ola, que bom ter voce por aqui. Vou preparar uma simulacao com todo o cuidado. Me conte um pouquinho sobre voce:</p>
+
+					<form id="contact-form" novalidate>
+						<label class="field field-wide" for="name">
+							<span class="field-label"><span class="field-number">01</span> Como voce prefere ser chamado?</span>
+							<input id="name" name="name" type="text" autocomplete="name" placeholder="Seu nome" minlength="2" maxlength="100" required>
+						</label>
+
+						<fieldset class="field field-wide date-field">
+							<legend class="field-label"><span class="field-number">02</span> Qual a sua data de nascimento ou idade?</legend>
+							<div class="choice-switch" role="group" aria-label="Escolha data de nascimento ou idade">
+								<button class="choice-button is-active" type="button" data-age-mode="birthdate" aria-pressed="true">Data de nascimento</button>
+								<button class="choice-button" type="button" data-age-mode="age" aria-pressed="false">Prefiro informar a idade</button>
+							</div>
+							<input id="birthdate" name="birthdate" type="date" autocomplete="bday" required aria-label="Data de nascimento">
+							<input id="age" name="age" type="number" inputmode="numeric" min="18" max="100" placeholder="Sua idade" hidden aria-label="Sua idade">
+						</fieldset>
+
+						<label class="field field-wide" for="profession">
+							<span class="field-label"><span class="field-number">03</span> Qual e a sua profissao ou atividade atual?</span>
+							<input id="profession" name="profession" type="text" autocomplete="organization-title" placeholder="Ex.: professora, empreendedor..." maxlength="100" required>
+						</label>
+
+						<label class="field" for="marital-status">
+							<span class="field-label"><span class="field-number">04</span> Estado civil</span>
+							<select id="marital-status" name="maritalStatus" required>
+								<option value="" selected disabled>Selecione</option>
+								<option>Solteiro(a)</option>
+								<option>Casado(a)</option>
+								<option>Uniao estavel</option>
+								<option>Separado(a) / divorciado(a)</option>
+								<option>Viuvo(a)</option>
+								<option>Prefiro nao informar</option>
+							</select>
+						</label>
+
+						<fieldset class="field children-field">
+							<legend class="field-label"><span class="field-number">05</span> Tem filhos?</legend>
+							<div class="children-controls">
+								<label class="radio-choice"><input type="radio" name="hasChildren" value="no" checked><span>Nao</span></label>
+								<label class="radio-choice"><input type="radio" name="hasChildren" value="yes"><span>Sim</span></label>
+								<label class="children-count" for="children-count" hidden><span>Quantos?</span><input id="children-count" name="childrenCount" type="number" min="1" max="30" value="1" inputmode="numeric" disabled></label>
+							</div>
+						</fieldset>
+
+						<label class="field field-wide" for="whatsapp">
+							<span class="field-label"><span class="field-number">06</span> Qual numero de WhatsApp podemos usar?</span>
+							<input id="whatsapp" name="whatsapp" type="tel" autocomplete="tel" inputmode="tel" placeholder="(11) 99999-9999" maxlength="20" required>
+							<span class="field-hint">Vamos falar com voce somente sobre esta simulacao.</span>
+						</label>
+
+						<label class="consent-field" for="consent">
+							<input id="consent" name="consent" type="checkbox" required>
+							<span>Concordo que a Infovida use estes dados para entrar em contato e preparar minha simulacao de seguro.</span>
+						</label>
+
+						<label class="honeypot" aria-hidden="true">Nao preencha<input name="website" tabindex="-1" autocomplete="off"></label>
+						<p class="form-error" id="form-error" role="alert" hidden></p>
+						<button class="submit-button" type="submit"><span>Quero receber minha simulacao</span><span class="button-arrow" aria-hidden="true">&#8594;</span></button>
+						<p class="privacy-note">Seus dados sao tratados com cuidado e usados apenas para este atendimento.</p>
+					</form>
+
+					<section class="success-state" id="success-state" aria-live="polite" hidden>
+						<span class="success-mark" aria-hidden="true">&#10003;</span>
+						<p class="eyebrow">Recebemos suas respostas</p>
+						<h2>Obrigado por confiar na Infovida.</h2>
+						<p>Em breve voce recebera uma simulacao para ajustarmos juntos um seguro que combine com voce.</p>
+						<button class="reset-button" id="reset-form" type="button">Enviar outra resposta</button>
+					</section>
+				</section>
+			</section>
+			<footer class="site-footer"><span>Infovida</span><span>Protecao para cada capitulo da sua vida.</span></footer>
+		</main>
+	</body>
+</html>
