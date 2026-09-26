@@ -1,21 +1,18 @@
 require("dotenv").config();
 
 const crypto = require("node:crypto");
-const fs = require("node:fs/promises");
+const fs = require("node:fs");
 const path = require("node:path");
-const { pathToFileURL } = require("node:url");
 const express = require("express");
 const { rateLimit } = require("express-rate-limit");
 const helmet = require("helmet");
-const { createClient } = require("@libsql/client");
+const Database = require("better-sqlite3");
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 const adminPassword = process.env.ADMIN_PASSWORD;
 const sessionSecret = process.env.SESSION_SECRET;
 const databasePath = process.env.DB_PATH || path.join(__dirname, "data", "infovida.sqlite");
-const tursoDatabaseUrl = process.env.TURSO_DATABASE_URL;
-const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
 const viewsDirectory = path.join(__dirname, "views");
 const cookieName = "infovida_admin";
 const sessionDurationSeconds = 60 * 60 * 8;
@@ -76,22 +73,11 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-async function initializeStorage() {
-  if (Boolean(tursoDatabaseUrl) !== Boolean(tursoAuthToken)) {
-    throw new Error("Configure TURSO_DATABASE_URL e TURSO_AUTH_TOKEN juntos, ou deixe ambos vazios para SQLite local.");
-  }
-  if (process.env.NODE_ENV === "production" && !tursoDatabaseUrl) {
-    throw new Error("Configure TURSO_DATABASE_URL e TURSO_AUTH_TOKEN no Render para usar o banco persistente Turso.");
-  }
-
-  if (tursoDatabaseUrl) {
-    database = createClient({ url: tursoDatabaseUrl, authToken: tursoAuthToken });
-  } else {
-    await fs.mkdir(path.dirname(databasePath), { recursive: true });
-    database = createClient({ url: pathToFileURL(path.resolve(databasePath)).href });
-  }
-
-  await database.execute(`
+function initializeStorage() {
+  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+  database = new Database(databasePath);
+  database.pragma("journal_mode = WAL");
+  database.exec(`
     CREATE TABLE IF NOT EXISTS infovida_submissions (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -99,26 +85,21 @@ async function initializeStorage() {
       created_at TEXT NOT NULL
     )
   `);
-
 }
 
-async function saveSubmission(submission) {
+function saveSubmission(submission) {
   const saved = { id: crypto.randomUUID(), ...submission };
-  await database.execute({
-    sql: `
-      INSERT INTO infovida_submissions (id, name, details, created_at)
-      VALUES (?, ?, ?, ?)
-    `,
-    args: [saved.id, saved.name, JSON.stringify(saved), saved.createdAt]
-  });
+  database.prepare(`
+    INSERT INTO infovida_submissions (id, name, details, created_at)
+    VALUES (?, ?, ?, ?)
+  `).run(saved.id, saved.name, JSON.stringify(saved), saved.createdAt);
   return saved;
 }
 
-async function listSubmissions() {
-  const result = await database.execute(`
+function listSubmissions() {
+  return database.prepare(`
     SELECT details FROM infovida_submissions ORDER BY created_at DESC
-  `);
-  return result.rows.map((row) => JSON.parse(String(row.details)));
+  `).all().map((row) => JSON.parse(row.details));
 }
 
 function cleanText(value, maxLength = 120) {
@@ -225,13 +206,12 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: "Ocorreu um erro. Tente novamente em instantes." });
 });
 
-initializeStorage()
-  .then(() => {
-    app.listen(port, "0.0.0.0", () => {
-      console.log(`Infovida disponivel na porta ${port}.`);
-    });
-  })
-  .catch((error) => {
-    console.error("Nao foi possivel inicializar o armazenamento:", error);
-    process.exit(1);
+try {
+  initializeStorage();
+  app.listen(port, "0.0.0.0", () => {
+    console.log(`Infovida disponivel na porta ${port}.`);
   });
+} catch (error) {
+  console.error("Nao foi possivel inicializar o banco SQLite:", error);
+  process.exit(1);
+}
