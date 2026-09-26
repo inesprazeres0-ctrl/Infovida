@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "migrate:turso": "node scripts/import-json-to-turso.js"
+    "migrate:turso": "node scripts/import-sqlite-to-turso.js"
   },
   "engines": {
     "node": ">=20"

@@ -16,7 +16,6 @@ const sessionSecret = process.env.SESSION_SECRET;
 const databasePath = process.env.DB_PATH || path.join(__dirname, "data", "infovida.sqlite");
 const tursoDatabaseUrl = process.env.TURSO_DATABASE_URL;
 const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
-const legacyDataFile = path.join(__dirname, "data", "submissions.json");
 const viewsDirectory = path.join(__dirname, "views");
 const cookieName = "infovida_admin";
 const sessionDurationSeconds = 60 * 60 * 8;
@@ -101,25 +100,6 @@ async function initializeStorage() {
     )
   `);
 
-  try {
-    const legacyEntries = JSON.parse(await fs.readFile(legacyDataFile, "utf8"));
-    if (Array.isArray(legacyEntries) && legacyEntries.length > 0) {
-      await database.batch(legacyEntries.map((entry) => {
-        const id = typeof entry.id === "string" ? entry.id : crypto.randomUUID();
-        const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString();
-        const details = { ...entry, id, createdAt };
-        return {
-          sql: `
-            INSERT OR IGNORE INTO infovida_submissions (id, name, details, created_at)
-            VALUES (?, ?, ?, ?)
-          `,
-          args: [id, cleanText(entry.name, 100) || "Contato", JSON.stringify(details), createdAt]
-        };
-      }), "write");
-    }
-  } catch (error) {
-    if (error.code !== "ENOENT") throw error;
-  }
 }
 
 async function saveSubmission(submission) {
