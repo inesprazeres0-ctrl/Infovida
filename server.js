@@ -3,15 +3,19 @@ require("dotenv").config();
 const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
 const path = require("node:path");
+const { pathToFileURL } = require("node:url");
 const express = require("express");
 const { rateLimit } = require("express-rate-limit");
 const helmet = require("helmet");
+const { createClient } = require("@libsql/client");
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 const adminPassword = process.env.ADMIN_PASSWORD;
 const sessionSecret = process.env.SESSION_SECRET;
 const databasePath = process.env.DB_PATH || path.join(__dirname, "data", "infovida.sqlite");
+const tursoDatabaseUrl = process.env.TURSO_DATABASE_URL;
+const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
 const legacyDataFile = path.join(__dirname, "data", "submissions.json");
 const viewsDirectory = path.join(__dirname, "views");
 const cookieName = "infovida_admin";
@@ -74,11 +78,21 @@ function requireAdmin(req, res, next) {
 }
 
 async function initializeStorage() {
-  await fs.mkdir(path.dirname(databasePath), { recursive: true });
-  const Database = require("better-sqlite3");
-  database = new Database(databasePath);
-  database.pragma("journal_mode = WAL");
-  database.exec(`
+  if (Boolean(tursoDatabaseUrl) !== Boolean(tursoAuthToken)) {
+    throw new Error("Configure TURSO_DATABASE_URL e TURSO_AUTH_TOKEN juntos, ou deixe ambos vazios para SQLite local.");
+  }
+  if (process.env.NODE_ENV === "production" && !tursoDatabaseUrl) {
+    throw new Error("Configure TURSO_DATABASE_URL e TURSO_AUTH_TOKEN no Render para usar o banco persistente Turso.");
+  }
+
+  if (tursoDatabaseUrl) {
+    database = createClient({ url: tursoDatabaseUrl, authToken: tursoAuthToken });
+  } else {
+    await fs.mkdir(path.dirname(databasePath), { recursive: true });
+    database = createClient({ url: pathToFileURL(path.resolve(databasePath)).href });
+  }
+
+  await database.execute(`
     CREATE TABLE IF NOT EXISTS infovida_submissions (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -89,18 +103,20 @@ async function initializeStorage() {
 
   try {
     const legacyEntries = JSON.parse(await fs.readFile(legacyDataFile, "utf8"));
-    const insertLegacy = database.prepare(`
-      INSERT OR IGNORE INTO infovida_submissions (id, name, details, created_at)
-      VALUES (?, ?, ?, ?)
-    `);
-    const importEntries = database.transaction((entries) => {
-      for (const entry of entries) {
+    if (Array.isArray(legacyEntries) && legacyEntries.length > 0) {
+      await database.batch(legacyEntries.map((entry) => {
         const id = typeof entry.id === "string" ? entry.id : crypto.randomUUID();
         const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString();
-        insertLegacy.run(id, cleanText(entry.name, 100) || "Contato", JSON.stringify(entry), createdAt);
-      }
-    });
-    if (Array.isArray(legacyEntries)) importEntries(legacyEntries);
+        const details = { ...entry, id, createdAt };
+        return {
+          sql: `
+            INSERT OR IGNORE INTO infovida_submissions (id, name, details, created_at)
+            VALUES (?, ?, ?, ?)
+          `,
+          args: [id, cleanText(entry.name, 100) || "Contato", JSON.stringify(details), createdAt]
+        };
+      }), "write");
+    }
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
@@ -108,17 +124,21 @@ async function initializeStorage() {
 
 async function saveSubmission(submission) {
   const saved = { id: crypto.randomUUID(), ...submission };
-  database.prepare(`
-    INSERT INTO infovida_submissions (id, name, details, created_at)
-    VALUES (?, ?, ?, ?)
-  `).run(saved.id, saved.name, JSON.stringify(saved), saved.createdAt);
+  await database.execute({
+    sql: `
+      INSERT INTO infovida_submissions (id, name, details, created_at)
+      VALUES (?, ?, ?, ?)
+    `,
+    args: [saved.id, saved.name, JSON.stringify(saved), saved.createdAt]
+  });
   return saved;
 }
 
 async function listSubmissions() {
-  return database.prepare(`
+  const result = await database.execute(`
     SELECT details FROM infovida_submissions ORDER BY created_at DESC
-  `).all().map((row) => JSON.parse(row.details));
+  `);
+  return result.rows.map((row) => JSON.parse(String(row.details)));
 }
 
 function cleanText(value, maxLength = 120) {

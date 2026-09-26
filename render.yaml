@@ -2,13 +2,9 @@ services:
   - type: web
     name: infovida
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install
     startCommand: npm start
-    disk:
-      name: infovida-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
@@ -16,5 +12,7 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true
-      - key: DB_PATH
-        value: /var/data/infovida.sqlite
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
