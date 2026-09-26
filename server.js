@@ -12,7 +12,10 @@ const app = express();
 const port = Number(process.env.PORT) || 3000;
 const adminPassword = process.env.ADMIN_PASSWORD;
 const sessionSecret = process.env.SESSION_SECRET;
-const databasePath = process.env.DB_PATH || path.join(__dirname, "data", "infovida.sqlite");
+const defaultDatabasePath = path.join(__dirname, "data", "infovida.sqlite");
+const configuredDatabasePath = process.env.DB_PATH
+  ? path.resolve(process.env.DB_PATH)
+  : defaultDatabasePath;
 const viewsDirectory = path.join(__dirname, "views");
 const cookieName = "infovida_admin";
 const sessionDurationSeconds = 60 * 60 * 8;
@@ -73,18 +76,41 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function openDatabase(filePath) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const connection = new Database(filePath);
+  try {
+    connection.pragma("journal_mode = WAL");
+    connection.exec(`
+      CREATE TABLE IF NOT EXISTS infovida_submissions (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        details TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    `);
+    return connection;
+  } catch (error) {
+    connection.close();
+    throw error;
+  }
+}
+
 function initializeStorage() {
-  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
-  database = new Database(databasePath);
-  database.pragma("journal_mode = WAL");
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS infovida_submissions (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      details TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    )
-  `);
+  try {
+    database = openDatabase(configuredDatabasePath);
+  } catch (error) {
+    const canUseEphemeralFallback =
+      configuredDatabasePath !== defaultDatabasePath &&
+      ["EACCES", "EPERM", "EROFS", "ENOTDIR", "EEXIST", "SQLITE_CANTOPEN"].includes(error.code);
+    if (!canUseEphemeralFallback) throw error;
+
+    console.warn(
+      `DB_PATH inacessivel (${configuredDatabasePath}); usando SQLite local temporario em ${defaultDatabasePath}. ` +
+      "No Render Free, os dados podem ser perdidos em reinicios ou deploys."
+    );
+    database = openDatabase(defaultDatabasePath);
+  }
 }
 
 function saveSubmission(submission) {
