@@ -26,10 +26,9 @@
 				<section class="form-panel" aria-labelledby="form-title">
 					<div class="form-heading">
 						<div>
-							<p class="eyebrow form-eyebrow">Prote&ccedil;&atilde;o alinhada &agrave; sua realidade</p>
 							<h2 id="form-title">Ol&aacute;, que bom ter voc&ecirc; por aqui!</h2>
 						</div>
-						<div class="progress-count" aria-label="Seis perguntas"><span>06</span><small>perguntas</small></div>
+						<div class="progress-count" aria-label="Sete perguntas"><span>07</span><small>perguntas</small></div>
 					</div>
 					<p class="form-lead">Sou a In&ecirc;s, corretora de seguros de vida, e h&aacute; mais de 30 anos ajudo pessoas a encontrar uma prote&ccedil;&atilde;o adequada aos seus planos e &agrave; sua realidade. Para come&ccedil;armos nossa conversa, responda &agrave;s perguntas abaixo. Vou analisar suas informa&ccedil;&otilde;es e preparar uma simula&ccedil;&atilde;o personalizada para voc&ecirc;.</p>
 
@@ -67,8 +66,24 @@
 							</select>
 						</label>
 
+						<label class="field field-wide" for="gender">
+							<span class="field-label"><span class="field-number">05</span> Qual &eacute; o seu sexo?</span>
+							<select id="gender" name="gender" required>
+								<option value="" selected disabled>Selecione</option>
+								<option>Masculino</option>
+								<option>Feminino</option>
+								<option>Outro</option>
+								<option>Prefiro n&atilde;o informar</option>
+							</select>
+						</label>
+
+						<label class="field field-wide" id="gender-other-field" for="gender-other" hidden>
+							<span class="field-label">Como voc&ecirc; gostaria de se identificar?</span>
+							<input id="gender-other" name="genderOther" type="text" maxlength="80" autocomplete="off" disabled>
+						</label>
+
 						<fieldset class="field children-field">
-							<legend class="field-label"><span class="field-number">05</span> Tem filhos?</legend>
+							<legend class="field-label"><span class="field-number">06</span> Tem filhos?</legend>
 							<div class="children-controls">
 								<label class="radio-choice"><input type="radio" name="hasChildren" value="no" checked><span>Nao</span></label>
 								<label class="radio-choice"><input type="radio" name="hasChildren" value="yes"><span>Sim</span></label>
@@ -77,7 +92,7 @@
 						</fieldset>
 
 						<label class="field field-wide" for="whatsapp">
-							<span class="field-label"><span class="field-number">06</span> Qual numero de WhatsApp podemos usar?</span>
+							<span class="field-label"><span class="field-number">07</span> Qual numero de WhatsApp podemos usar?</span>
 							<input id="whatsapp" name="whatsapp" type="tel" autocomplete="tel" inputmode="tel" placeholder="(11) 99999-9999" maxlength="20" required>
 							<span class="field-hint">Vamos falar com voce somente sobre esta simulacao.</span>
 						</label>
@@ -96,8 +111,8 @@
 					<section class="success-state" id="success-state" aria-live="polite" hidden>
 						<span class="success-mark" aria-hidden="true">&#10003;</span>
 						<p class="eyebrow">Recebemos suas respostas</p>
-						<h2>Obrigado por confiar na Infovida.</h2>
-						<p>Em breve voce recebera uma simulacao para ajustarmos juntos um seguro que combine com voce.</p>
+						<h2>Obrigado por confiar seus dados a mim.</h2>
+						<p>Em breve te retornarei</p>
 						<button class="reset-button" id="reset-form" type="button">Enviar outra resposta</button>
 					</section>
 				</section>

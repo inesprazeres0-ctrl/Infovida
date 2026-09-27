@@ -191,15 +191,25 @@ app.post("/api/submissions", submissionLimiter, async (req, res, next) => {
     const ageOrBirthdate = cleanText(req.body?.ageOrBirthdate, 30);
     const profession = cleanText(req.body?.profession, 100);
     const maritalStatus = cleanText(req.body?.maritalStatus, 40);
+    const gender = cleanText(req.body?.gender, 30);
+    const genderOther = cleanText(req.body?.genderOther, 80);
     const whatsapp = cleanText(req.body?.whatsapp, 30);
     const hasChildren = req.body?.hasChildren === true;
     const childrenCount = hasChildren ? Number(req.body?.childrenCount) : 0;
+    const allowedGenders = new Set([
+      "Masculino",
+      "Feminino",
+      "Outro",
+      "Prefiro não informar"
+    ]);
 
     if (
       name.length < 2 ||
       !ageOrBirthdate ||
       !profession ||
       !maritalStatus ||
+      !allowedGenders.has(gender) ||
+      (gender === "Outro" && !genderOther) ||
       whatsapp.replace(/\D/g, "").length < 10 ||
       !Number.isInteger(childrenCount) ||
       childrenCount < 0 ||
@@ -213,6 +223,8 @@ app.post("/api/submissions", submissionLimiter, async (req, res, next) => {
       ageOrBirthdate,
       profession,
       maritalStatus,
+      gender,
+      genderOther: gender === "Outro" ? genderOther : "",
       hasChildren,
       childrenCount,
       whatsapp,

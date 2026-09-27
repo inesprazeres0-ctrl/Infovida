@@ -5,6 +5,9 @@ const birthdateInput = document.querySelector("#birthdate");
 const ageInput = document.querySelector("#age");
 const childrenCount = document.querySelector("#children-count");
 const childrenCountLabel = document.querySelector(".children-count");
+const genderSelect = document.querySelector("#gender");
+const genderOtherField = document.querySelector("#gender-other-field");
+const genderOtherInput = document.querySelector("#gender-other");
 const whatsappInput = document.querySelector("#whatsapp");
 
 for (const button of document.querySelectorAll("[data-age-mode]")) {
@@ -34,6 +37,14 @@ for (const radio of document.querySelectorAll('input[name="hasChildren"]')) {
   });
 }
 
+genderSelect.addEventListener("change", () => {
+  const isOther = genderSelect.value === "Outro";
+  genderOtherField.hidden = !isOther;
+  genderOtherInput.disabled = !isOther;
+  genderOtherInput.required = isOther;
+  if (isOther) genderOtherInput.focus();
+});
+
 whatsappInput.addEventListener("input", () => {
   const digits = whatsappInput.value.replace(/\D/g, "").slice(0, 11);
   if (digits.length <= 2) {
@@ -60,6 +71,8 @@ form.addEventListener("submit", async (event) => {
     ageOrBirthdate: isAge ? `${formData.get("age")} anos` : formData.get("birthdate"),
     profession: formData.get("profession"),
     maritalStatus: formData.get("maritalStatus"),
+    gender: formData.get("gender"),
+    genderOther: formData.get("genderOther") || "",
     hasChildren,
     childrenCount: hasChildren ? Number(formData.get("childrenCount")) : 0,
     whatsapp: formData.get("whatsapp"),

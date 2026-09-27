@@ -88,6 +88,10 @@ function createSubmissionRow(person) {
   addDetail(details, "Nascimento ou idade", person.ageOrBirthdate);
   addDetail(details, "Profissao / atividade", person.profession);
   addDetail(details, "Estado civil", person.maritalStatus);
+  const gender = person.gender === "Outro"
+    ? `Outro: ${person.genderOther || "N\u00E3o informado"}`
+    : person.gender || "N\u00E3o informado";
+  addDetail(details, "Sexo / g\u00EAnero", gender);
   addDetail(details, "Filhos", children);
   const digits = person.whatsapp.replace(/\D/g, "");
   const whatsappHref = `https://wa.me/55${digits}`;
