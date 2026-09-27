@@ -49,7 +49,7 @@
 						</fieldset>
 
 						<label class="field field-wide" for="profession">
-							<span class="field-label"><span class="field-number">03</span> Qual e a sua profissao ou atividade atual?</span>
+							<span class="field-label"><span class="field-number">03</span> <span id="profession-question">Qual e a sua profissao ou atividade atual?</span></span>
 							<input id="profession" name="profession" type="text" autocomplete="organization-title" placeholder="Ex.: professora, empreendedor..." maxlength="100" required>
 						</label>
 
@@ -60,8 +60,8 @@
 								<option>Solteiro(a)</option>
 								<option>Casado(a)</option>
 								<option>Uniao estavel</option>
-								<option>Separado(a) / divorciado(a)</option>
-								<option>Viuvo(a)</option>
+								<option value="Separado(a) / divorciado(a)">Separado(a) / divorciado(a)</option>
+								<option value="Viuvo(a)">Viuvo(a)</option>
 								<option>Prefiro nao informar</option>
 							</select>
 						</label>

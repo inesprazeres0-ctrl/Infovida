@@ -1,4 +1,7 @@
 const form = document.querySelector("#contact-form");
+const formAudience = window.location.pathname.replace(/\/$/, "") === "/servidor-publico"
+  ? "servidor-publico"
+  : "seguro-pessoas";
 const formError = document.querySelector("#form-error");
 const successState = document.querySelector("#success-state");
 const birthdateInput = document.querySelector("#birthdate");
@@ -8,7 +11,15 @@ const childrenCountLabel = document.querySelector(".children-count");
 const genderSelect = document.querySelector("#gender");
 const genderOtherField = document.querySelector("#gender-other-field");
 const genderOtherInput = document.querySelector("#gender-other");
+const maritalStatusSelect = document.querySelector("#marital-status");
 const whatsappInput = document.querySelector("#whatsapp");
+
+if (formAudience === "servidor-publico") {
+  document.querySelector("#profession-question").textContent = "Qual \u00E9 a sua atividade profissional?";
+  for (const value of ["Separado(a) / divorciado(a)", "Viuvo(a)"]) {
+    maritalStatusSelect.querySelector(`option[value="${value}"]`)?.remove();
+  }
+}
 
 for (const button of document.querySelectorAll("[data-age-mode]")) {
   button.addEventListener("click", () => {
@@ -67,6 +78,7 @@ form.addEventListener("submit", async (event) => {
   const isAge = !ageInput.disabled;
   const hasChildren = formData.get("hasChildren") === "yes";
   const payload = {
+    audience: formAudience,
     name: formData.get("name"),
     ageOrBirthdate: isAge ? `${formData.get("age")} anos` : formData.get("birthdate"),
     profession: formData.get("profession"),

@@ -151,6 +151,12 @@ app.get("/infovida-admin.html", (req, res) => {
   res.sendFile(path.join(viewsDirectory, hasAdminSession(req) ? "admin.html" : "admin-login.html"));
 });
 
+app.get("/", (req, res) => res.redirect(302, "/seguro-pessoas"));
+app.get("/index.html", (req, res) => res.redirect(302, "/seguro-pessoas"));
+app.get(["/seguro-pessoas", "/servidor-publico"], (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.post("/api/admin/login", loginLimiter, (req, res) => {
   const providedPassword = typeof req.body?.password === "string" ? req.body.password : "";
   const expectedHash = crypto.createHash("sha256").update(adminPassword).digest();
@@ -197,6 +203,8 @@ app.post("/api/submissions", submissionLimiter, async (req, res, next) => {
     if (cleanText(req.body?.website, 200)) return res.status(201).json({ ok: true });
 
     const name = cleanText(req.body?.name, 100);
+    const requestedAudience = cleanText(req.body?.audience, 40);
+    const audience = requestedAudience || "seguro-pessoas";
     const ageOrBirthdate = cleanText(req.body?.ageOrBirthdate, 30);
     const profession = cleanText(req.body?.profession, 100);
     const maritalStatus = cleanText(req.body?.maritalStatus, 40);
@@ -211,9 +219,11 @@ app.post("/api/submissions", submissionLimiter, async (req, res, next) => {
       "Outro",
       "Prefiro não informar"
     ]);
+    const allowedAudiences = new Set(["seguro-pessoas", "servidor-publico"]);
 
     if (
       name.length < 2 ||
+      !allowedAudiences.has(audience) ||
       !ageOrBirthdate ||
       !profession ||
       !maritalStatus ||
@@ -228,6 +238,7 @@ app.post("/api/submissions", submissionLimiter, async (req, res, next) => {
     }
 
     const saved = await saveSubmission({
+      audience,
       name,
       ageOrBirthdate,
       profession,

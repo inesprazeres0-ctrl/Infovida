@@ -11,7 +11,7 @@ npm install
 npm start
 ```
 
-Abra `http://localhost:3000`. O acesso administrativo fica em `http://localhost:3000/infovida-admin.html`; credenciais locais podem ser definidas em um arquivo `.env`, ignorado pelo Git.
+Abra `http://localhost:3000/seguro-pessoas` para o formulario principal ou `http://localhost:3000/servidor-publico` para o formulario de servidores publicos. A raiz redireciona para o formulario principal. O acesso administrativo fica em `http://localhost:3000/infovida-admin.html`; credenciais locais podem ser definidas em um arquivo `.env`, ignorado pelo Git.
 
 O servidor exige `ADMIN_PASSWORD` e `SESSION_SECRET`. Para iniciar localmente, defina ambas no ambiente ou em `.env` antes de executar `npm start`. Os contatos sao gravados pelo `better-sqlite3` no banco SQLite `data/infovida.sqlite`; `DB_PATH` pode apontar para outro caminho. Esse arquivo e a fonte de verdade local e fica ignorado pelo Git porque contem dados pessoais.
 

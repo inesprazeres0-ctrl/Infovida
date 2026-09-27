@@ -73,7 +73,8 @@ function createSubmissionRow(person) {
   name.textContent = person.name;
   const meta = document.createElement("p");
   meta.className = "person-meta";
-  meta.textContent = `${person.profession} · Recebido em ${formatDate(person.createdAt)}`;
+  const audienceLabel = person.audience === "servidor-publico" ? "Servidor público" : "Seguro de pessoas";
+  meta.textContent = `${person.profession} · ${audienceLabel} · Recebido em ${formatDate(person.createdAt)}`;
   primary.append(name, meta);
   const toggle = document.createElement("button");
   toggle.className = "expand-button";
@@ -87,6 +88,7 @@ function createSubmissionRow(person) {
     ? `Sim, ${person.childrenCount} ${person.childrenCount === 1 ? "filho(a)" : "filhos"}`
     : "Nao";
   addDetail(details, "Nascimento ou idade", person.ageOrBirthdate);
+  addDetail(details, "Formulário", person.audience === "servidor-publico" ? "Servidor público" : "Seguro de pessoas");
   addDetail(details, "Profissao / atividade", person.profession);
   addDetail(details, "Estado civil", person.maritalStatus);
   const gender = person.gender === "Outro"
