@@ -30,6 +30,7 @@ const list = document.querySelector("#submission-list");
 const count = document.querySelector("#submission-count");
 const emptyState = document.querySelector("#empty-state");
 const dashboardError = document.querySelector("#dashboard-error");
+const clearSubmissionsButton = document.querySelector("#clear-submissions-button");
 
 function addDetail(container, label, value, link) {
   const item = document.createElement("div");
@@ -122,6 +123,7 @@ async function loadSubmissions() {
     list.replaceChildren(...submissions.map(createSubmissionRow));
     count.textContent = `${submissions.length} ${submissions.length === 1 ? "contato" : "contatos"}`;
     emptyState.hidden = submissions.length > 0;
+    clearSubmissionsButton.disabled = submissions.length === 0;
   } catch (error) {
     count.textContent = "";
     dashboardError.textContent = error.message || "Falha ao carregar os contatos.";
@@ -130,6 +132,27 @@ async function loadSubmissions() {
 }
 
 document.querySelector("#refresh-button")?.addEventListener("click", loadSubmissions);
+clearSubmissionsButton?.addEventListener("click", async () => {
+  const confirmed = window.confirm("Deseja apagar todos os contatos? Esta acao nao pode ser desfeita.");
+  if (!confirmed) return;
+
+  clearSubmissionsButton.disabled = true;
+  dashboardError.hidden = true;
+  try {
+    const response = await fetch("/api/admin/submissions", { method: "DELETE" });
+    if (response.status === 401) {
+      window.location.replace("/infovida-admin.html");
+      return;
+    }
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Nao foi possivel limpar a lista.");
+    await loadSubmissions();
+  } catch (error) {
+    dashboardError.textContent = error.message || "Falha ao limpar a lista.";
+    dashboardError.hidden = false;
+    clearSubmissionsButton.disabled = false;
+  }
+});
 document.querySelector("#logout-button")?.addEventListener("click", async () => {
   await fetch("/api/admin/logout", { method: "POST" });
   window.location.replace("/infovida-admin.html");

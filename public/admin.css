@@ -38,6 +38,10 @@ button, input { font: inherit; } button { cursor: pointer; } [hidden] { display:
 .submission-row { transition: border-color .18s, box-shadow .18s; }
 .submission-row:hover { border-color: #bccdbe; box-shadow: 0 4px 16px #334d350b; }
 .submission-summary { min-height: 80px; }
+.list-actions { display: flex; align-items: center; gap: 14px; }
+.clear-button { min-height: 40px; padding: 0 12px; border: 1px solid #cda8a4; background: #fff; color: #8d403b; font-size: 12px; font-weight: 600; }
+.clear-button:hover:not(:disabled) { border-color: #8d403b; background: #fbf1f0; }
+.clear-button:disabled { cursor: not-allowed; opacity: .5; }
 .person-name { font-size: 16px; }
 .person-meta { color: #59695f; font-size: 13px; }
 .expand-button { min-height: 40px; padding: 0 13px; font-size: 12px; }
@@ -54,6 +58,9 @@ button, input { font: inherit; } button { cursor: pointer; } [hidden] { display:
 	.dashboard-topline h1 { font-size: 34px; }
 	.dashboard-intro { font-size: 14px; }
 	.secure-label { display: none; }
+	.list-heading { align-items: flex-start; gap: 10px; }
+	.list-actions { flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 	.expand-button { min-height: 40px; padding: 0 9px; font-size: 11px; }
+	.clear-button { min-height: 40px; padding: 0 9px; font-size: 11px; }
 	.dashboard-footer { font-size: 11px; }
 }

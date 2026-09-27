@@ -20,7 +20,13 @@
       <div class="dashboard-topline"><div><p class="eyebrow">Atendimento Infovida</p><h1>Contatos recebidos</h1></div><button class="icon-button refresh-button" id="refresh-button" type="button" aria-label="Atualizar lista" title="Atualizar lista">&#8635;</button></div>
       <p class="dashboard-intro">Conheca cada pessoa e prepare uma simulacao feita para ela.</p>
       <section class="submissions-section" aria-labelledby="list-title">
-        <div class="list-heading"><h2 id="list-title">Lista de interessados</h2><span class="submission-count" id="submission-count">Carregando...</span></div>
+        <div class="list-heading">
+          <h2 id="list-title">Lista de interessados</h2>
+          <div class="list-actions">
+            <span class="submission-count" id="submission-count">Carregando...</span>
+            <button class="clear-button" id="clear-submissions-button" type="button" disabled>Limpar lista</button>
+          </div>
+        </div>
         <p class="admin-error" id="dashboard-error" role="alert" hidden></p>
         <div class="submission-list" id="submission-list" aria-live="polite"></div>
         <div class="empty-state" id="empty-state" hidden><span class="empty-mark" aria-hidden="true">&#9675;</span><h3>A lista esta vazia por enquanto</h3><p>Quando alguem enviar o formulario, o contato aparecera aqui.</p></div>

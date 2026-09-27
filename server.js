@@ -183,6 +183,15 @@ app.get("/api/admin/submissions", requireAdmin, async (req, res, next) => {
   }
 });
 
+app.delete("/api/admin/submissions", requireAdmin, (req, res, next) => {
+  try {
+    const result = database.prepare("DELETE FROM infovida_submissions").run();
+    res.json({ ok: true, deletedCount: result.changes });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/submissions", submissionLimiter, async (req, res, next) => {
   try {
     if (cleanText(req.body?.website, 200)) return res.status(201).json({ ok: true });
