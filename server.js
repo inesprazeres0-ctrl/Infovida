@@ -6,13 +6,14 @@ const path = require("node:path");
 const express = require("express");
 const { rateLimit } = require("express-rate-limit");
 const helmet = require("helmet");
-const Database = require("better-sqlite3");
+const sqlite3 = require("sqlite3").verbose();
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 const adminPassword = process.env.ADMIN_PASSWORD;
 const sessionSecret = process.env.SESSION_SECRET;
-const defaultDatabasePath = path.join(__dirname, "data", "infovida.sqlite");
+const defaultDatabasePath = path.join(__dirname, "infovida.sqlite");
+const previousDatabasePath = path.join(__dirname, "data", "infovida.sqlite");
 const configuredDatabasePath = process.env.DB_PATH
   ? path.resolve(process.env.DB_PATH)
   : defaultDatabasePath;
@@ -76,56 +77,153 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-function openDatabase(filePath) {
+function openDatabase(filePath, mode = sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const connection = new Database(filePath);
+  return new Promise((resolve, reject) => {
+    let connection;
+    connection = new sqlite3.Database(filePath, mode, (error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(connection);
+    });
+  });
+}
+
+function run(databaseConnection, sql, parameters = []) {
+  return new Promise((resolve, reject) => {
+    databaseConnection.run(sql, parameters, function (error) {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve({ changes: this.changes, lastID: this.lastID });
+    });
+  });
+}
+
+function all(databaseConnection, sql, parameters = []) {
+  return new Promise((resolve, reject) => {
+    databaseConnection.all(sql, parameters, (error, rows) => {
+      if (error) reject(error);
+      else resolve(rows);
+    });
+  });
+}
+
+function get(databaseConnection, sql, parameters = []) {
+  return new Promise((resolve, reject) => {
+    databaseConnection.get(sql, parameters, (error, row) => {
+      if (error) reject(error);
+      else resolve(row);
+    });
+  });
+}
+
+function closeDatabase(databaseConnection) {
+  return new Promise((resolve, reject) => {
+    databaseConnection.close((error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+}
+
+async function createSchema(databaseConnection) {
+  await run(databaseConnection, "PRAGMA journal_mode = WAL");
+  await run(databaseConnection, `
+    CREATE TABLE IF NOT EXISTS infovida_submissions (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      details TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `);
+  await run(databaseConnection, `
+    CREATE TABLE IF NOT EXISTS infovida_migrations (
+      name TEXT PRIMARY KEY,
+      completed_at TEXT NOT NULL
+    )
+  `);
+}
+
+async function migratePreviousDatabase(databaseConnection) {
+  if (!fs.existsSync(previousDatabasePath) || previousDatabasePath === configuredDatabasePath) return;
+  const migrationName = "data-infovida-sqlite-to-root-v1";
+  const completedMigration = await get(databaseConnection,
+    "SELECT name FROM infovida_migrations WHERE name = ?", [migrationName]);
+  if (completedMigration) return;
+
+  const previousDatabase = await openDatabase(previousDatabasePath, sqlite3.OPEN_READONLY);
+  let rows;
   try {
-    connection.pragma("journal_mode = WAL");
-    connection.exec(`
-      CREATE TABLE IF NOT EXISTS infovida_submissions (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        details TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      )
+    rows = await all(previousDatabase, `
+      SELECT id, name, details, created_at
+      FROM infovida_submissions
+      ORDER BY created_at
     `);
-    return connection;
   } catch (error) {
-    connection.close();
+    if (error.code === "SQLITE_ERROR" && /no such table/i.test(error.message)) return;
+    throw error;
+  } finally {
+    await closeDatabase(previousDatabase);
+  }
+
+  await run(databaseConnection, "BEGIN TRANSACTION");
+  try {
+    for (const row of rows) {
+      await run(databaseConnection, `
+        INSERT OR IGNORE INTO infovida_submissions (id, name, details, created_at)
+        VALUES (?, ?, ?, ?)
+      `, [row.id, row.name, row.details, row.created_at]);
+    }
+    await run(databaseConnection,
+      "INSERT INTO infovida_migrations (name, completed_at) VALUES (?, ?)",
+      [migrationName, new Date().toISOString()]);
+    await run(databaseConnection, "COMMIT");
+    console.log(`${rows.length} inscricoes verificadas durante a migracao para ${configuredDatabasePath}.`);
+  } catch (error) {
+    await run(databaseConnection, "ROLLBACK").catch(() => {});
     throw error;
   }
 }
 
-function initializeStorage() {
+async function initializeStorage() {
+  const targetAlreadyExisted = fs.existsSync(configuredDatabasePath);
   try {
-    database = openDatabase(configuredDatabasePath);
+    database = await openDatabase(configuredDatabasePath);
+    await createSchema(database);
   } catch (error) {
-    const canUseEphemeralFallback =
-      configuredDatabasePath !== defaultDatabasePath &&
+    const canUseFallback = configuredDatabasePath !== defaultDatabasePath &&
       ["EACCES", "EPERM", "EROFS", "ENOTDIR", "EEXIST", "SQLITE_CANTOPEN"].includes(error.code);
-    if (!canUseEphemeralFallback) throw error;
+    if (!canUseFallback) throw error;
 
     console.warn(
-      `DB_PATH inacessivel (${configuredDatabasePath}); usando SQLite local temporario em ${defaultDatabasePath}. ` +
+      `DB_PATH inacessivel (${configuredDatabasePath}); usando SQLite temporario em ${defaultDatabasePath}. ` +
       "No Render Free, os dados podem ser perdidos em reinicios ou deploys."
     );
-    database = openDatabase(defaultDatabasePath);
+    database = await openDatabase(defaultDatabasePath);
+    await createSchema(database);
   }
+
+  if (!targetAlreadyExisted) await migratePreviousDatabase(database);
 }
 
-function saveSubmission(submission) {
+async function saveSubmission(submission) {
   const saved = { id: crypto.randomUUID(), ...submission };
-  database.prepare(`
+  await run(database, `
     INSERT INTO infovida_submissions (id, name, details, created_at)
     VALUES (?, ?, ?, ?)
-  `).run(saved.id, saved.name, JSON.stringify(saved), saved.createdAt);
+  `, [saved.id, saved.name, JSON.stringify(saved), saved.createdAt]);
   return saved;
 }
 
-function listSubmissions() {
-  return database.prepare(`
+async function listSubmissions() {
+  const rows = await all(database, `
     SELECT details FROM infovida_submissions ORDER BY created_at DESC
-  `).all().map((row) => JSON.parse(row.details));
+  `);
+  return rows.map((row) => JSON.parse(row.details));
 }
 
 function cleanText(value, maxLength = 120) {
@@ -189,9 +287,9 @@ app.get("/api/admin/submissions", requireAdmin, async (req, res, next) => {
   }
 });
 
-app.delete("/api/admin/submissions", requireAdmin, (req, res, next) => {
+app.delete("/api/admin/submissions", requireAdmin, async (req, res, next) => {
   try {
-    const result = database.prepare("DELETE FROM infovida_submissions").run();
+    const result = await run(database, "DELETE FROM infovida_submissions");
     res.json({ ok: true, deletedCount: result.changes });
   } catch (error) {
     next(error);
@@ -264,12 +362,13 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: "Ocorreu um erro. Tente novamente em instantes." });
 });
 
-try {
-  initializeStorage();
+initializeStorage()
+  .then(() => {
   app.listen(port, "0.0.0.0", () => {
     console.log(`Infovida disponivel na porta ${port}.`);
   });
-} catch (error) {
-  console.error("Nao foi possivel inicializar o banco SQLite:", error);
-  process.exit(1);
-}
+  })
+  .catch((error) => {
+    console.error("Nao foi possivel inicializar o banco SQLite:", error);
+    process.exit(1);
+  });
